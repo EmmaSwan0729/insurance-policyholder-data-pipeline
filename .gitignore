@@ -15,11 +15,17 @@ env/
 .databricks/
 databricks.yml.bak
 
-# Data (原始/处理后的数据不进仓库，只留目录结构；如需展示样例数据另建 sample/ 并显式添加)
+# Data (untracked by default; only directory structure is kept)
 data/raw/*
-!data/raw/.gitkeep
 data/processed/*
+!data/raw/.gitkeep
 !data/processed/.gitkeep
+
+# Exception: source dataset is public (Kaggle, CC0 Public Domain) and small
+# enough to commit directly, so the pipeline can be run immediately after
+# cloning without a separate download or generation step.
+!data/raw/life_insurance_retention_dataset_full.csv
+!data/raw/uk_policyholders_source.csv
 
 # OS / Editor
 .DS_Store
