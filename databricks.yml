@@ -1,0 +1,22 @@
+# Databricks Asset Bundle configuration (placeholder)
+#
+# To be filled in once we set up the actual Databricks workspace target(s).
+# Expected structure:
+#
+# bundle:
+#   name: insurance-policyholder-data-pipeline
+#
+# targets:
+#   dev:
+#     mode: development
+#     workspace:
+#       host: <dev-workspace-url>
+#   prod:
+#     mode: production
+#     workspace:
+#       host: <prod-workspace-url>
+#
+# resources:
+#   jobs:
+#     policyholder_pipeline_job:
+#       ...
