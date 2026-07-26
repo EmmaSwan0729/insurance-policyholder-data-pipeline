@@ -36,7 +36,7 @@ Raw source data (Kaggle, adapted to UK context)
 
 ## Tech Stack
 
-- **Databricks** (Community Edition) — Spark, Spark SQL, PySpark
+- **Databricks** (Free Edition) — Spark, Spark SQL, PySpark
 - **Delta Lake** — Medallion architecture, schema evolution, Liquid Clustering
 - **Databricks Asset Bundles** — CI/CD deployment (dev/prod)
 - **GitHub Actions** — automated test + deploy pipeline

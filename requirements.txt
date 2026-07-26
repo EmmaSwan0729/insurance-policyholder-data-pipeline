@@ -1,6 +1,9 @@
 # Core
-pyspark>=3.5.0
-delta-spark>=3.1.0
+# Pinned to a verified-compatible pair, and close to a realistic Databricks
+# Runtime version(Spark 3.5.x / Delta 3.x) so local development mirrors 
+# the eventual deployment environment
+pyspark>=3.5.1
+delta-spark>=3.2.0
 pandas>=2.0.0
 
 # Data generation / manipulation
