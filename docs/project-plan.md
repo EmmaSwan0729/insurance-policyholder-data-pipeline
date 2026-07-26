@@ -15,7 +15,7 @@ Close date: 3rd August 2026
 - [ ] Audit trail logging
 - [ ] Unit tests (pytest) for DQ rules + transformation logic
 - [ ] CI/CD minimal loop: push → test → deploy to dev (GitHub Actions +
-      Databricks Asset Bundles)
+      Databricks Declarative Automation Bundles (Asset Bundles))
 - [ ] Streamlit dashboard: data quality overview + business metrics
 
 ## Phase 2 (extension)
@@ -37,7 +37,7 @@ Close date: 3rd August 2026
   decoupled) so Phase 2/3 can be added without rework.
 - Scalability is demonstrated through design choices (Liquid Clustering,
   parameterised data volume, incremental processing via CDF) rather than
-  by literally running at large scale on Community Edition.
+  by literally running at large scale on Free Edition.
 
 ## Open questions
 
