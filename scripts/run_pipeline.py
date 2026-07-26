@@ -13,7 +13,7 @@ them.
 Run:
     python scripts/run_pipeline.py
 """
-
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -27,14 +27,28 @@ from pyspark.sql import functions as F
 
 from src.audit.trail import build_dq_gate_audit_log, write_audit_log
 from src.dq_gate.rules import apply_dq_gate
-from src.ingestion.load_raw_data import get_spark_session, load_raw_policyolders, write_bronze
+from src.ingestion.load_raw_data import get_spark_session, load_raw_policyholders, write_bronze
 from src.transform.enrichment import enrich
 
-SOURCE_PATH = "data/raw/uk_policyholders_source.csv"
-BRONZE_PATH = "data/bronze/policyholders"
-GOLD_PATH = "data/gold/policyholders_enriched"
+
+ON_DATABRICKS = "DATABRICKS_RUNTIME_VERSION" in os.environ
+
+if ON_DATABRICKS:
+    SOURCE_PATH = "/Volumes/workspace/policyholder_pipeline/raw_data/uk_policyholders_source.csv"
+else:
+    SOURCE_PATH = "data/raw/uk_policyholders_source.csv"
+
+BRONZE_PATH = "data/bronze/policyholders"  # local-only
+
+CATALOG = "workspace"
+SCHEMA = "policyholder_pipeline"
+BRONZE_TABLE = f"{CATALOG}.{SCHEMA}.bronze_policyholders"
+GOLD_TABLE = f"{CATALOG}.{SCHEMA}.gold_policyholders_enriched"
+AUDIT_TABLE = f"{CATALOG}.{SCHEMA}.audit_dq_corrections"
+
+GOLD_PATH = "data/gold/policyholders_enriched"  # local-only
 AUDIT_PATH = "data/audit/dq_corrections"
- 
+
 GOLD_CSV = "data/gold/policyholders_enriched.csv"
 DQ_SUMMARY_CSV = "data/gold/dq_summary.csv"
 DQ_REASON_SUMMARY_CSV = "data/gold/dq_reason_summary.csv"
@@ -65,10 +79,13 @@ def build_dq_reason_summary(gated_df: DataFrame) -> DataFrame:
 
 
 def main():
-    spark = get_spark_session()
+    spark = SparkSession.builder.getOrCreate() if ON_DATABRICKS else get_spark_session()
 
-    raw_df = load_raw_policyolders(spark, SOURCE_PATH)
-    write_bronze(raw_df, BRONZE_PATH)
+    raw_df = load_raw_policyholders(spark, SOURCE_PATH)
+    if ON_DATABRICKS:
+        raw_df.write.format("delta").mode("overwrite").saveAsTable(BRONZE_TABLE)
+    else:
+        write_bronze(raw_df, BRONZE_PATH)
 
     gated_df = apply_dq_gate(raw_df)
     dq_summary = build_dq_summary(gated_df)
@@ -77,15 +94,20 @@ def main():
     enriched_df = enrich(gated_df, reference_date=REFERENCE_DATE)
     audit_log = build_dq_gate_audit_log(gated_df)
 
-    enriched_df.write.format("delta").mode("overwrite").save(GOLD_PATH)
-    write_audit_log(audit_log, AUDIT_PATH)
+    if ON_DATABRICKS:
+        enriched_df.write.format("delta").mode("overwrite").saveAsTable(GOLD_TABLE)
+        audit_log.write.format("delta").mode("append").saveAsTable(AUDIT_TABLE)
+    else:
+        enriched_df.write.format("delta").mode("overwrite").save(GOLD_PATH)
+        write_audit_log(audit_log, AUDIT_PATH)
 
     # Lightweight extracts for the dashboard (see module docstring for why
     # the dashboard reads these instead of running Spark itself).
-    enriched_df.toPandas().to_csv(GOLD_CSV, index=False)
-    dq_summary.toPandas().to_csv(DQ_SUMMARY_CSV, index=False)
-    dq_reason_summary.toPandas().to_csv(DQ_REASON_SUMMARY_CSV, index=False)
-    audit_log.toPandas().to_csv(AUDIT_CSV, index=False)
+    if not ON_DATABRICKS:
+        enriched_df.toPandas().to_csv(GOLD_CSV, index=False)
+        dq_summary.toPandas().to_csv(DQ_SUMMARY_CSV, index=False)
+        dq_reason_summary.toPandas().to_csv(DQ_REASON_SUMMARY_CSV, index=False)
+        audit_log.toPandas().to_csv(AUDIT_CSV, index=False)
 
     print(f"Gold layer written: {enriched_df.count()} rows -> {GOLD_PATH}")
     print(f"Audit log written: {audit_log.count()} rows -> {AUDIT_PATH}")

@@ -24,7 +24,7 @@ def get_spark_session(app_name: str = "policyholder-pipeline") -> SparkSession:
     )
     return configure_spark_with_delta_pip(builder).getOrCreate()
 
-def load_raw_policyolders(spark: SparkSession, source_path: str) -> DataFrame:
+def load_raw_policyholders(spark: SparkSession, source_path: str) -> DataFrame:
     """Read the source CSV with no cleaning or filtering applied."""
     return (
         spark.read.option("header", True)
@@ -42,7 +42,7 @@ def main():
     source_path = "data/raw/uk_policyholders_source.csv"
     bronze_path = "data/bronze/policyholders"
 
-    raw_df = load_raw_policyolders(spark, source_path)
+    raw_df = load_raw_policyholders(spark, source_path)
     write_bronze(raw_df, bronze_path)
 
     print(f"Bronze layer written to {bronze_path}: {raw_df.count()} rows.")
