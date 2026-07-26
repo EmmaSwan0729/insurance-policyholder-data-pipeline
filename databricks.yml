@@ -1,22 +1,27 @@
-# Databricks Asset Bundle configuration (placeholder)
-#
-# To be filled in once we set up the actual Databricks workspace target(s).
-# Expected structure:
-#
-# bundle:
-#   name: insurance-policyholder-data-pipeline
-#
-# targets:
-#   dev:
-#     mode: development
-#     workspace:
-#       host: <dev-workspace-url>
-#   prod:
-#     mode: production
-#     workspace:
-#       host: <prod-workspace-url>
-#
-# resources:
-#   jobs:
-#     policyholder_pipeline_job:
-#       ...
+bundle:
+  name: insurance-policyholder-data-pipeline
+
+workspace:
+  host: https://dbc-e9011047-6093.cloud.databricks.com
+  profile: dbc-e9011047-6093
+
+resources:
+  jobs:
+    run_pipeline:
+      name: insurance-policyholder-pipeline
+      tasks:
+        - task_key: run_pipeline
+          spark_python_task:
+            python_file: scripts/run_pipeline.py
+            parameters:
+              - "${workspace.file_path}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "5"
+
+targets:
+  dev:
+    mode: development
+    default: true

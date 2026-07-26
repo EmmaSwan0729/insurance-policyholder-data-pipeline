@@ -16,13 +16,22 @@ Run:
 import os
 import sys
 from datetime import date
-from pathlib import Path
 
-# Ensures the project root (the parent of scripts/) is importable as "src.*"
-# regardless of the working directory this script is launched from.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ON_DATABRICKS = "DATABRICKS_RUNTIME_VERSION" in os.environ
 
-from pyspark.sql import DataFrame
+if ON_DATABRICKS:
+    # __file__ is not available inside Databricks' spark_python_task
+    # execution context (the script runs via exec(), not a normal
+    # interpreter invocation). The synced workspace files root is passed
+    # in explicitly instead, via the job parameter set in databricks.yml.
+    project_root = sys.argv[1]
+else:
+    from pathlib import Path
+    project_root = str(Path(__file__).resolve().parent.parent)
+
+sys.path.insert(0, project_root)
+
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
 from src.audit.trail import build_dq_gate_audit_log, write_audit_log
@@ -30,8 +39,6 @@ from src.dq_gate.rules import apply_dq_gate
 from src.ingestion.load_raw_data import get_spark_session, load_raw_policyholders, write_bronze
 from src.transform.enrichment import enrich
 
-
-ON_DATABRICKS = "DATABRICKS_RUNTIME_VERSION" in os.environ
 
 if ON_DATABRICKS:
     SOURCE_PATH = "/Volumes/workspace/policyholder_pipeline/raw_data/uk_policyholders_source.csv"
@@ -109,13 +116,17 @@ def main():
         dq_reason_summary.toPandas().to_csv(DQ_REASON_SUMMARY_CSV, index=False)
         audit_log.toPandas().to_csv(AUDIT_CSV, index=False)
 
-    print(f"Gold layer written: {enriched_df.count()} rows -> {GOLD_PATH}")
-    print(f"Audit log written: {audit_log.count()} rows -> {AUDIT_PATH}")
-    print("Dashboard extracts written:")
-    print(f"  {GOLD_CSV}")
-    print(f"  {DQ_SUMMARY_CSV}")
-    print(f"  {DQ_REASON_SUMMARY_CSV}")
-    print(f"  {AUDIT_CSV}")
+    if ON_DATABRICKS:
+        print(f"Gold layer written: {enriched_df.count()} rows -> {GOLD_TABLE}")
+        print(f"Audit log written: {audit_log.count()} rows -> {AUDIT_TABLE}")
+    else:
+        print(f"Gold layer written: {enriched_df.count()} rows -> {GOLD_PATH}")
+        print(f"Audit log written: {audit_log.count()} rows -> {AUDIT_PATH}")
+        print("Dashboard extracts written:")
+        print(f"  {GOLD_CSV}")
+        print(f"  {DQ_SUMMARY_CSV}")
+        print(f"  {DQ_REASON_SUMMARY_CSV}")
+        print(f"  {AUDIT_CSV}")
  
  
 if __name__ == "__main__":
