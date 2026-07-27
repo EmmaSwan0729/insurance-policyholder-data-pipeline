@@ -20,6 +20,9 @@ data/raw/*
 data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+data/bronze/
+data/gold/
+data/audit/
 
 # Exception: source dataset is public (Kaggle, CC0 Public Domain) and small
 # enough to commit directly, so the pipeline can be run immediately after
@@ -40,4 +43,4 @@ secrets.json
 # Test / coverage
 .pytest_cache/
 .coverage
-htmlcov/
+htmlcov/docs/project-plan.md
