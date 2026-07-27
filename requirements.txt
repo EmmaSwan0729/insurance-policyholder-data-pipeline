@@ -2,8 +2,8 @@
 # Pinned to a verified-compatible pair, and close to a realistic Databricks
 # Runtime version(Spark 3.5.x / Delta 3.x) so local development mirrors 
 # the eventual deployment environment
-pyspark>=3.5.1
-delta-spark>=3.2.0
+pyspark==3.5.1
+delta-spark==3.2.0
 pandas>=2.0.0
 
 # Data generation / manipulation
@@ -17,6 +17,7 @@ plotly>=5.20.0
 # Testing
 pytest>=8.0.0
 pytest-cov>=5.0.0
+ruff>=0.5.0
 
 # Databricks CLI (for Asset Bundles) — install separately via curl,
 # listed here for reference only
