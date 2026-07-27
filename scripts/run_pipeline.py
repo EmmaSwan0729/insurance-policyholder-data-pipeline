@@ -103,6 +103,7 @@ def main():
 
     if ON_DATABRICKS:
         enriched_df.write.format("delta").mode("overwrite").saveAsTable(GOLD_TABLE)
+        spark.sql(f"ALTER TABLE {GOLD_TABLE} CLUSTER BY (policy_type, distribution_channel)")
         audit_log.write.format("delta").mode("append").saveAsTable(AUDIT_TABLE)
     else:
         enriched_df.write.format("delta").mode("overwrite").save(GOLD_PATH)
