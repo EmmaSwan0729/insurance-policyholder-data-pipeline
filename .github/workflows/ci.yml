@@ -54,8 +54,13 @@ jobs:
         - name: Install Databricks CLI
           uses: databricks/setup-cli@main
 
+        - name: Configure Databricks CLI
+          run: |
+            cat > ~/.databrickscfg << EOF
+            [DEFAULT]
+            host = ${{ secrets.DATABRICKS_HOST }}
+            token = ${{ secrets.DATABRICKS_TOKEN }}
+            EOF
+
         - name: Deploy bundle
           run: databricks bundle deploy -t dev
-          env:
-            DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-            DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
