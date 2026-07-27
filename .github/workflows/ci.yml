@@ -45,22 +45,18 @@ jobs:
         run: pytest tests/ -v
 
   deploy:
-      needs: test
-      runs-on: ubuntu-latest
-      if: github.ref == 'refs/heads/main'
-      steps:
-        - uses: actions/checkout@v4
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
 
-        - name: Install Databricks CLI
-          uses: databricks/setup-cli@main
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
 
-        - name: Configure Databricks CLI
-          run: |
-            cat > ~/.databrickscfg << EOF
-            [DEFAULT]
-            host = ${{ secrets.DATABRICKS_HOST }}
-            token = ${{ secrets.DATABRICKS_TOKEN }}
-            EOF
-
-        - name: Deploy bundle
-          run: databricks bundle deploy -t dev
+      - name: Deploy bundle
+        run: databricks bundle deploy -t dev
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
