@@ -1,8 +1,10 @@
 """
 Shared pytest fixtures for Spark-based tests
 """
+
 import pytest
 from pyspark.sql import SparkSession
+
 
 @pytest.fixture(scope="session")
 def spark():

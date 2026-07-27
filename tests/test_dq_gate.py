@@ -1,6 +1,6 @@
 """
 Unit tests for src/dq_gate/rules.py
- 
+
 Each test builds a minimal, hand-crafted record set that isolates a single
 rule, so a failing test always points at exactly one broken piece of logic.
 """
@@ -20,22 +20,22 @@ from src.dq_gate.rules import BLOCKED, DEGRADED, PASS_, apply_dq_gate
 # least one non-null value per column to guess a type on its own.
 SCHEMA = StructType(
     [
-        StructField("policy_id", StringType(),True),
-        StructField("customer_id", StringType(),True),
-        StructField("age", IntegerType(),True),
-        StructField("gender", StringType(),True),
-        StructField("marital_status", StringType(),True),
-        StructField("number_of_dependents", IntegerType(),True),
-        StructField("annual_income_gbp", IntegerType(),True),
-        StructField("health_status", StringType(),True),
-        StructField("smoking_status", StringType(),True),
-        StructField("policy_type", StringType(),True),
-        StructField("sum_assured_gbp", IntegerType(),True),
-        StructField("monthly_premium_gbp", DoubleType(),True),
-        StructField("distribution_channel", StringType(),True),
-        StructField("policy_start_date", StringType(),True),
-        StructField("months_in_arrears", IntegerType(),True),
-        StructField("policy_status", StringType(),True),
+        StructField("policy_id", StringType(), True),
+        StructField("customer_id", StringType(), True),
+        StructField("age", IntegerType(), True),
+        StructField("gender", StringType(), True),
+        StructField("marital_status", StringType(), True),
+        StructField("number_of_dependents", IntegerType(), True),
+        StructField("annual_income_gbp", IntegerType(), True),
+        StructField("health_status", StringType(), True),
+        StructField("smoking_status", StringType(), True),
+        StructField("policy_type", StringType(), True),
+        StructField("sum_assured_gbp", IntegerType(), True),
+        StructField("monthly_premium_gbp", DoubleType(), True),
+        StructField("distribution_channel", StringType(), True),
+        StructField("policy_start_date", StringType(), True),
+        StructField("months_in_arrears", IntegerType(), True),
+        StructField("policy_status", StringType(), True),
     ]
 )
 
@@ -73,14 +73,14 @@ def test_clean_record_passes(spark):
 
 
 def test_blocked_when_policy_id_missing(spark):
-    df = _row(spark,policy_id=None)
+    df = _row(spark, policy_id=None)
     result = apply_dq_gate(df).collect()[0]
     assert result["dq_status"] == BLOCKED
     assert "missing policy_id" in result["dq_reason"]
 
 
 def test_blocked_when_sum_assured_non_positive(spark):
-    df = _row(spark,sum_assured_gbp=0)
+    df = _row(spark, sum_assured_gbp=0)
     result = apply_dq_gate(df).collect()[0]
     assert result["dq_status"] == BLOCKED
     assert "sum_assured_gbp is not positive" in result["dq_reason"]
@@ -98,7 +98,7 @@ def test_degraded_when_gender_recoverable(spark):
     result = apply_dq_gate(df).collect()[0]
     assert result["dq_status"] == DEGRADED
     assert result["gender_standardised"] == "Female"
-    assert "gender value standardised" in  result["dq_reason"]
+    assert "gender value standardised" in result["dq_reason"]
 
 
 def test_degraded_when_gender_unrecognised(spark):
@@ -114,11 +114,16 @@ def test_degraded_when_health_status_unrecognised(spark):
     assert result["dq_status"] == DEGRADED
     assert "unrecognised health_status category" in result["dq_reason"]
 
+
 def test_degraded_when_status_conflicts_with_arrears(spark):
     df = _row(spark, policy_status="Active", months_in_arrears=8)
     result = apply_dq_gate(df).collect()[0]
     assert result["dq_status"] == DEGRADED
-    assert "policy_status Active conflicts with months_in_arrears >= 6" in result["dq_reason"]
+    assert (
+        "policy_status Active conflicts with months_in_arrears >= 6"
+        in result["dq_reason"]
+    )
+
 
 def test_blocked_takes_precedence_over_degraded(spark):
     # A record with both a BLOCKED-level and a DEGRADED-level issue

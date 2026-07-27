@@ -1,10 +1,10 @@
 """
 Silver -> Gold -- Transform & Enrichment.
- 
+
 Derives assumption-setting-relevant metrics from records that passed the
 DQ Gate (PASS or DEGRADED; BLOCKED records are excluded and must be
 resolved upstream before they can be enriched).
- 
+
 Metrics produced here mirror what an actuarial assumption-setting exercise
 would consume directly:
 - policy_duration_years: how long a policy has been in force
@@ -15,7 +15,6 @@ would consume directly:
 """
 
 from datetime import date
-from typing import Optional
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
@@ -27,21 +26,27 @@ from pyspark.sql import functions as F
 LAPSE_ELIGIBLE_STATUSES = ("Active", "Lapsed")
 
 
-def filter_dq_passed(df:DataFrame) -> DataFrame:
+def filter_dq_passed(df: DataFrame) -> DataFrame:
     # Only keep PASS and DEGRADED records continue downstream.
     return df.filter(F.col("dq_status") != "BLOCKED")
 
 
-def calculate_policy_duration(df: DataFrame, reference_date: Optional[date] = None) -> DataFrame:
+def calculate_policy_duration(
+    df: DataFrame, reference_date: date | None = None
+) -> DataFrame:
     """
     Adds policy_duration_years, measured from policy_start_date to
     reference_date (defaults to the current date if not supplied).
     A fixed reference_date is used in tests so results are deterministic.
     """
-    reference_date_col = F.lit(reference_date) if reference_date is not None else F.current_date()
+    reference_date_col = (
+        F.lit(reference_date) if reference_date is not None else F.current_date()
+    )
     return df.withColumn(
         "policy_duration_years",
-        F.round(F.date_diff(reference_date_col, F.col("policy_start_date")) / 365.25, 2),
+        F.round(
+            F.date_diff(reference_date_col, F.col("policy_start_date")) / 365.25, 2
+        ),
     )
 
 
@@ -50,7 +55,7 @@ def flag_lapse(df: DataFrame) -> DataFrame:
     return df.withColumn("is_lapsed", F.col("policy_status") == "Lapsed")
 
 
-def enrich(df: DataFrame, reference_date: Optional[date] = None) -> DataFrame:
+def enrich(df: DataFrame, reference_date: date | None = None) -> DataFrame:
     """Runs the full Silver -> Gold enrichment sequence on DQ-Gated data."""
     df = filter_dq_passed(df)
     df = calculate_policy_duration(df, reference_date=reference_date)
@@ -71,8 +76,8 @@ def lapse_rate_by_segment(df: DataFrame, segment_col: str) -> DataFrame:
             F.sum(F.col("is_lapsed").cast("int")).alias("lapsed_count"),
             F.count("*").alias("eligible_count"),
         )
-        .withColumn("lapse_rate", F.round(F.col("lapsed_count") / F.col("eligible_count"), 4))
+        .withColumn(
+            "lapse_rate", F.round(F.col("lapsed_count") / F.col("eligible_count"), 4)
+        )
         .orderBy(F.desc("lapse_rate"))
     )
-
-

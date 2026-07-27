@@ -5,7 +5,6 @@ Unit tests for src/transform/enrichment.py
 from datetime import date
 
 from pyspark.sql.types import (
-    BooleanType,
     DateType,
     StringType,
     StructField,
@@ -15,9 +14,9 @@ from pyspark.sql.types import (
 from src.transform.enrichment import (
     calculate_policy_duration,
     filter_dq_passed,
-    flag_lapse,lapse_rate_by_segment,
+    flag_lapse,
+    lapse_rate_by_segment,
 )
-
 
 SCHEMA = StructType(
     [
@@ -31,15 +30,15 @@ SCHEMA = StructType(
 
 
 def _rows(spark, records):
-    return  spark.createDataFrame(records, schema=SCHEMA)
+    return spark.createDataFrame(records, schema=SCHEMA)
 
 
 def test_calculate_policy_duration(spark):
     df = _rows(
         spark,
-        [("POL-1","Term Assurance", "Active", date(2020,1,1), "PASS")],
+        [("POL-1", "Term Assurance", "Active", date(2020, 1, 1), "PASS")],
     )
-    result = calculate_policy_duration(df, reference_date=date(2025,1,1)).collect()[0]
+    result = calculate_policy_duration(df, reference_date=date(2025, 1, 1)).collect()[0]
     # 2020-01-01 to 2025-01-01 is exactly 5 years (accounting for one leap day
     # inside 365.25-day years), so this should land very close to 5.0.
     assert abs(result["policy_duration_years"] - 5.0) < 0.05
@@ -48,7 +47,7 @@ def test_calculate_policy_duration(spark):
 def test_flag_lapse_true_for_lapsed_status(spark):
     df = _rows(
         spark,
-        [("POL-1","Term Assurance", "Lapsed", date(2020,1,1), "PASS")],
+        [("POL-1", "Term Assurance", "Lapsed", date(2020, 1, 1), "PASS")],
     )
     result = flag_lapse(df).collect()[0]
     assert result["is_lapsed"] is True
@@ -57,7 +56,7 @@ def test_flag_lapse_true_for_lapsed_status(spark):
 def test_flag_lapse_false_for_active_status(spark):
     df = _rows(
         spark,
-        [("POL-1","Term Assurance", "Active", date(2020,1,1), "PASS")],
+        [("POL-1", "Term Assurance", "Active", date(2020, 1, 1), "PASS")],
     )
     result = flag_lapse(df).collect()[0]
     assert result["is_lapsed"] is False
@@ -67,14 +66,14 @@ def test_filter_dq_passed_excludes_blocked(spark):
     df = _rows(
         spark,
         [
-            ("POL-1","Term Assurance", "Active", date(2020,1,1), "PASS"),
-            ("POL-2","Term Assurance", "Active", date(2020,1,1), "DEGRADED"),
-            ("POL-3","Term Assurance", "Active", date(2020,1,1), "BLOCKED"),
+            ("POL-1", "Term Assurance", "Active", date(2020, 1, 1), "PASS"),
+            ("POL-2", "Term Assurance", "Active", date(2020, 1, 1), "DEGRADED"),
+            ("POL-3", "Term Assurance", "Active", date(2020, 1, 1), "BLOCKED"),
         ],
     )
     result = filter_dq_passed(df)
     remaining_ids = {row["policy_id"] for row in result.collect()}
-    assert remaining_ids == {"POL-1","POL-2"}
+    assert remaining_ids == {"POL-1", "POL-2"}
 
 
 def test_lapse_rate_by_segment_basic(spark):
@@ -84,10 +83,10 @@ def test_lapse_rate_by_segment_basic(spark):
     df = _rows(
         spark,
         [
-            ("POL-1","Term Assurance", "Lapsed", date(2020,1,1), "PASS"),
-            ("POL-2","Term Assurance", "Active", date(2020,1,1), "PASS"),
-            ("POL-3","Term Assurance", "Matured", date(2020,1,1), "PASS"),
-            ("POL-4","Whole of Life", "Active", date(2015,1,1), "PASS"),
+            ("POL-1", "Term Assurance", "Lapsed", date(2020, 1, 1), "PASS"),
+            ("POL-2", "Term Assurance", "Active", date(2020, 1, 1), "PASS"),
+            ("POL-3", "Term Assurance", "Matured", date(2020, 1, 1), "PASS"),
+            ("POL-4", "Whole of Life", "Active", date(2015, 1, 1), "PASS"),
         ],
     )
     enriched = flag_lapse(df)
@@ -97,6 +96,3 @@ def test_lapse_rate_by_segment_basic(spark):
     }
     assert result["Term Assurance"] == 0.5
     assert result["Whole of Life"] == 0.0
-
-
-

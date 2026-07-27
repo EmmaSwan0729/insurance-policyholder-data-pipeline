@@ -1,9 +1,9 @@
 """
 Silver layer -- DQ Gate.
- 
+
 Classifies every record as PASS / DEGRADED / BLOCKED and attaches a
 dq_status and dq_reason column, following three principles:
- 
+
 - BLOCKED: the record is unusable for any downstream purpose (e.g. no
   identifier, an economically meaningless sum assured, an implausible
   age). These records must not reach the Gold layer without manual review.
@@ -12,7 +12,7 @@ dq_status and dq_reason column, following three principles:
   contradiction worth flagging (e.g. an "Active" policy that is materially
   in arrears). These records are usable but are marked for visibility.
 - PASS: no issues found.
- 
+
 A record can trigger more than one rule; dq_reason lists every rule that
 fired, semicolon-separated, so a single record's full issue history is
 visible without re-running the checks.
@@ -26,6 +26,7 @@ DEGRADED = "DEGRADED"
 PASS_ = "PASS"
 
 VALID_HEALTH_STATUSES = ("Excellent", "Good", "Fair")
+
 
 def _standardise_gender(df: DataFrame) -> DataFrame:
     """
@@ -41,34 +42,52 @@ def _standardise_gender(df: DataFrame) -> DataFrame:
         .otherwise(F.col("gender")),
     )
 
-def apply_dq_gate(df:DataFrame) -> DataFrame:
+
+def apply_dq_gate(df: DataFrame) -> DataFrame:
     df = _standardise_gender(df)
 
     blocked_missing_policy_id = F.col("policy_id").isNull()
     blocked_non_positive_sum_assured = F.col("sum_assured_gbp") <= 0
     blocked_invalid_age = (F.col("age") < 0) | (F.col("age") > 120)
 
-    degraded_gender_recovered = (F.col("gender") != F.col("gender_standardised")) & (F.col("gender_standardised").isin("Male","Female"))
+    degraded_gender_recovered = (F.col("gender") != F.col("gender_standardised")) & (
+        F.col("gender_standardised").isin("Male", "Female")
+    )
     degraded_unrecognised_gender = ~F.col("gender_standardised").isin("Male", "Female")
-    degraded_unrecognised_health_status = ~F.col("health_status").isin(*VALID_HEALTH_STATUSES)
-    degraded_status_arrears_conflict = (F.col("policy_status") == "Active") & (F.col("months_in_arrears") >= 6)
+    degraded_unrecognised_health_status = ~F.col("health_status").isin(
+        *VALID_HEALTH_STATUSES
+    )
+    degraded_status_arrears_conflict = (F.col("policy_status") == "Active") & (
+        F.col("months_in_arrears") >= 6
+    )
 
-    blocked_condition = (blocked_missing_policy_id | blocked_non_positive_sum_assured | blocked_invalid_age)
-    degraded_condition = (degraded_gender_recovered 
-                          | degraded_unrecognised_gender 
-                          | degraded_unrecognised_health_status 
-                          | degraded_status_arrears_conflict
-                        )
+    blocked_condition = (
+        blocked_missing_policy_id
+        | blocked_non_positive_sum_assured
+        | blocked_invalid_age
+    )
+    degraded_condition = (
+        degraded_gender_recovered
+        | degraded_unrecognised_gender
+        | degraded_unrecognised_health_status
+        | degraded_status_arrears_conflict
+    )
 
     reason_exprs = [
         F.when(blocked_missing_policy_id, F.lit("missing policy_id")),
-        F.when(blocked_non_positive_sum_assured, F.lit("sum_assured_gbp is not positive")),
+        F.when(
+            blocked_non_positive_sum_assured, F.lit("sum_assured_gbp is not positive")
+        ),
         F.when(blocked_invalid_age, F.lit("age outside plausible human range")),
         F.when(degraded_gender_recovered, F.lit("gender value standardised")),
         F.when(degraded_unrecognised_gender, F.lit("unrecognised gender category")),
-        F.when(degraded_unrecognised_health_status, F.lit("unrecognised health_status category")),
-        F.when(degraded_status_arrears_conflict, 
-               F.lit("policy_status Active conflicts with months_in_arrears >= 6"),
+        F.when(
+            degraded_unrecognised_health_status,
+            F.lit("unrecognised health_status category"),
+        ),
+        F.when(
+            degraded_status_arrears_conflict,
+            F.lit("policy_status Active conflicts with months_in_arrears >= 6"),
         ),
     ]
 
@@ -86,4 +105,3 @@ def apply_dq_gate(df:DataFrame) -> DataFrame:
     )
 
     return df
-    

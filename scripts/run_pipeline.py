@@ -9,10 +9,11 @@ query a curated serving layer rather than operating its own compute
 cluster. This keeps the dashboard lightweight and matches how Databricks
 dashboards typically consume Gold-layer tables rather than recomputing
 them.
- 
+
 Run:
     python scripts/run_pipeline.py
 """
+
 import os
 import sys
 from datetime import date
@@ -27,6 +28,7 @@ if ON_DATABRICKS:
     project_root = sys.argv[1]
 else:
     from pathlib import Path
+
     project_root = str(Path(__file__).resolve().parent.parent)
 
 sys.path.insert(0, project_root)
@@ -36,12 +38,17 @@ from pyspark.sql import functions as F
 
 from src.audit.trail import build_dq_gate_audit_log, write_audit_log
 from src.dq_gate.rules import apply_dq_gate
-from src.ingestion.load_raw_data import get_spark_session, load_raw_policyholders, write_bronze
+from src.ingestion.load_raw_data import (
+    get_spark_session,
+    load_raw_policyholders,
+    write_bronze,
+)
 from src.transform.enrichment import enrich
 
-
 if ON_DATABRICKS:
-    SOURCE_PATH = "/Volumes/workspace/policyholder_pipeline/raw_data/uk_policyholders_source.csv"
+    SOURCE_PATH = (
+        "/Volumes/workspace/policyholder_pipeline/raw_data/uk_policyholders_source.csv"
+    )
 else:
     SOURCE_PATH = "data/raw/uk_policyholders_source.csv"
 
@@ -60,7 +67,7 @@ GOLD_CSV = "data/gold/policyholders_enriched.csv"
 DQ_SUMMARY_CSV = "data/gold/dq_summary.csv"
 DQ_REASON_SUMMARY_CSV = "data/gold/dq_reason_summary.csv"
 AUDIT_CSV = "data/audit/dq_corrections.csv"
- 
+
 # Fixed reference date so policy_duration_years is reproducible across runs,
 # rather than silently drifting as the calendar date changes.
 REFERENCE_DATE = date(2025, 1, 1)
@@ -103,7 +110,9 @@ def main():
 
     if ON_DATABRICKS:
         enriched_df.write.format("delta").mode("overwrite").saveAsTable(GOLD_TABLE)
-        spark.sql(f"ALTER TABLE {GOLD_TABLE} CLUSTER BY (policy_type, distribution_channel)")
+        spark.sql(
+            f"ALTER TABLE {GOLD_TABLE} CLUSTER BY (policy_type, distribution_channel)"
+        )
         audit_log.write.format("delta").mode("append").saveAsTable(AUDIT_TABLE)
     else:
         enriched_df.write.format("delta").mode("overwrite").save(GOLD_PATH)
@@ -128,7 +137,7 @@ def main():
         print(f"  {DQ_SUMMARY_CSV}")
         print(f"  {DQ_REASON_SUMMARY_CSV}")
         print(f"  {AUDIT_CSV}")
- 
- 
+
+
 if __name__ == "__main__":
     main()

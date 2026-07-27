@@ -52,10 +52,14 @@ def random_date(start: date, end: date) -> date:
 
 def clean_customer_id(raw_id: str) -> str:
     """Strip the 'mostly' generator-tool prefix, keep the rest as a UUID-like id."""
-    return raw_id.replace("mostly", "").strip("-") if isinstance(raw_id, str) else raw_id
+    return (
+        raw_id.replace("mostly", "").strip("-") if isinstance(raw_id, str) else raw_id
+    )
 
 
-def derive_policy_status(policy_start: date, months_in_arrears: int, rng: random.Random) -> str:
+def derive_policy_status(
+    policy_start: date, months_in_arrears: int, rng: random.Random
+) -> str:
     """
     Rule-based (not purely random) policy status, driven by policy duration
     and payment arrears, so downstream lapse-rate metrics tell a coherent
@@ -89,7 +93,9 @@ def build_uk_dataset(df: pd.DataFrame) -> pd.DataFrame:
     out["health_status"] = df["health_status"]
     out["smoking_status"] = df["smoking_status"]
 
-    out["policy_type"] = df["policy_type"].map(POLICY_TYPE_MAP).fillna(df["policy_type"])
+    out["policy_type"] = (
+        df["policy_type"].map(POLICY_TYPE_MAP).fillna(df["policy_type"])
+    )
     out["sum_assured_gbp"] = df["coverage_amount"]
     out["monthly_premium_gbp"] = df["monthly_premium"]
 
